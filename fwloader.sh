@@ -56,7 +56,7 @@ verify (){
                     echo "You chose ipfw as fallback tool but it doesn't seem to be available on your system."
                     exit 1
                 else
-                    OLDSET="ipfw -q -f flush"
+                    OLDSET="ipfw -q -f flush;ipfw -q add allow all from any to any"
                 fi
                 break
                 ;;

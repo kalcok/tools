@@ -36,7 +36,6 @@ verify (){
     fi
 
     # Check if backup ruleset exists
-    echo "oldset $OLDSET"
     if [ "$OLDSET" = "" ]
     then
         # If not specified, check if we have fallback fw tool specified and available
@@ -46,6 +45,8 @@ verify (){
                 then
                     echo "You chose iptables as fallback tool but it doesn't seem to be available on your system."
                     exit 1
+                else
+                    OLDSET="iptables -F"
                 fi
                 break
                 ;;
@@ -54,22 +55,28 @@ verify (){
                 then
                     echo "You chose ipfw as fallback tool but it doesn't seem to be available on your system."
                     exit 1
+                else
+                    OLDSET="ipfw -q -f flush"
                 fi
                 break
                 ;;
             pf)
-                if ! [ "$(command -v pf)" ]
+                if ! [ "$(command -v pfctl)" ]
                 then
                     echo "You chose pf as fallback tool but it doesn't seem to be available on your system."
                     exit 1
+                else
+                    OLDSET="pfctl -F all"
                 fi
                 break
                 ;;
             ipfilter)
-                if ! [ "$(command -v ipfilter)" ]
+                if ! [ "$(command -v ipf)" ]
                 then
                     echo "You chose ipfilter as fallback tool but it doesn't seem to be available on your system."
                     exit 1
+                else
+                    OLDSET="ipf -Fa"
                 fi
                 break
                 ;;
@@ -103,7 +110,7 @@ verify (){
     fi
     
     # Check if NEWSET and OLDSET are different files
-    if [ $NEWSET = $OLDSET ]
+    if [ "$NEWSET" = "$OLDSET" ]
     then
         echo "${b}Warning:${nob} You selected same script for both main and backup rules. This successfuly defeats purpose of this script."
         echo -n "Do you want to continue anyway?[Y/n]: "
@@ -123,15 +130,18 @@ verify (){
 }
 
 run (){
+    echo "Fwloader starting...\nGoing to apply new rules from \"$NEWSET\"\nIf you are didnt lock yourself out (i.e. You see countdown steadily ticking dow), send SIGINT signal (usually ^C) to interupt this program."
     screen -d -m -S fwloader bash -c "sleep $TIMEOUT;$OLDSET"
-    for i in $(seq 10 -1 1); do sleep 1;printf "hello $i\033[K\r"; done
-    echo "Dry run. Force: ${FORCE}, timeout: ${TIMEOUT}, newset: ${NEWSET}, oldset ${OLDSET}"
+    $NEWSET
+    for i in $(seq $TIMEOUT -1 0); do sleep 1;printf "Countdown:  $i seconds\033[K\r"; done
+    echo "Backup rules applied"
 }
 
 usage (){
     echo "fwloader is script designed to safely test new firewall ruleset that could potentialy 
 lock you out of remote access. It applies ${b}NEW_RULES${nob} and waits (by default) 30 seconds,
-if it's not canceled by user within this period it will reload ${b}OLD_RULES${nob}
+if it's not canceled by user within this period it will reload ${b}OLD_RULES${nob}. You can cancel
+this script by issuing SIGINT (usualy ^C).
 
 Usage: fwloader [OPTIONS] -i NEW_RULES [-o OLD_RULES]
 

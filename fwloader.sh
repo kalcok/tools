@@ -46,7 +46,7 @@ verify (){
                     echo "You chose iptables as fallback tool but it doesn't seem to be available on your system."
                     exit 1
                 else
-                    OLDSET="iptables -F"
+                    OLDSET="iptables -F;iptables -A INPUT -j ACCEPT"
                 fi
                 break
                 ;;
